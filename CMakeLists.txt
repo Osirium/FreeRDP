@@ -98,6 +98,7 @@ endif()
 
 # Compiler-specific flags
 if(CMAKE_COMPILER_IS_GNUCC)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=i686")
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
 	CHECK_C_COMPILER_FLAG (-Wno-unused-result Wno-unused-result)
 	if(Wno-unused-result)
