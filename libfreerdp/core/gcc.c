@@ -21,8 +21,7 @@
 #include "config.h"
 #endif
 
-#include <freerdp/utils/print.h>
-#include <freerdp/utils/unicode.h>
+#include <winpr/crt.h>
 
 #include "gcc.h"
 #include "certificate.h"
@@ -364,8 +363,30 @@ void gcc_write_client_data_blocks(STREAM* s, rdpSettings* settings)
 
 	/* extended client data supported */
 
-	if (settings->NegotiationFlags)
-		gcc_write_client_monitor_data(s, settings);
+	if (settings->NegotiationFlags & EXTENDED_CLIENT_DATA_SUPPORTED)
+	{
+		if (!settings->SpanMonitors)
+		{
+			gcc_write_client_monitor_data(s, settings);
+		}
+	}
+	else
+	{
+		if (settings->UseMultimon)
+		{
+			printf("WARNING: true multi monitor support was not advertised by server!\n");
+
+			if (settings->ForceMultimon)
+			{
+				printf("Sending multi monitor information anyway (may break connectivity!)\n");
+				gcc_write_client_monitor_data(s, settings);
+			}
+			else
+			{
+				printf("Use /multimon:force to force sending multi monitor information\n");
+			}
+		}
+	}
 }
 
 BOOL gcc_read_server_data_blocks(STREAM* s, rdpSettings* settings, int length)
@@ -491,9 +512,9 @@ BOOL gcc_read_client_core_data(STREAM* s, rdpSettings* settings, UINT16 blockLen
 	stream_read_UINT32(s, settings->ClientBuild); /* ClientBuild */
 
 	/* clientName (32 bytes, null-terminated unicode, truncated to 15 characters) */
-	freerdp_UnicodeToAsciiAlloc((WCHAR*) stream_get_tail(s), &str, 32 / 2);
+	ConvertFromUnicode(CP_UTF8, 0, (WCHAR*) stream_get_tail(s), 32 / 2, &str, 0, NULL, NULL);
 	stream_seek(s, 32);
-	snprintf(settings->ClientHostname, 31, "%s", str);
+	sprintf_s(settings->ClientHostname, 31, "%s", str);
 	settings->ClientHostname[31] = 0;
 	free(str);
 
@@ -547,9 +568,9 @@ BOOL gcc_read_client_core_data(STREAM* s, rdpSettings* settings, UINT16 blockLen
 		if (blockLength < 64)
 			break;
 
-		freerdp_UnicodeToAsciiAlloc((WCHAR*) stream_get_tail(s), &str, 64 / 2);
+		ConvertFromUnicode(CP_UTF8, 0, (WCHAR*) stream_get_tail(s), 64 / 2, &str, 0, NULL, NULL);
 		stream_seek(s, 64);
-		snprintf(settings->ClientProductId, 32, "%s", str);
+		sprintf_s(settings->ClientProductId, 32, "%s", str);
 		free(str);
 		blockLength -= 64;
 
@@ -647,8 +668,8 @@ void gcc_write_client_core_data(STREAM* s, rdpSettings* settings)
 
 	version = settings->RdpVersion >= 5 ? RDP_VERSION_5_PLUS : RDP_VERSION_4;
 
-	clientNameLength = freerdp_AsciiToUnicodeAlloc(settings->ClientHostname, &clientName, 0);
-	clientDigProductIdLength = freerdp_AsciiToUnicodeAlloc(settings->ClientProductId, &clientDigProductId, 0);
+	clientNameLength = ConvertToUnicode(CP_UTF8, 0, settings->ClientHostname, -1, &clientName, 0);
+	clientDigProductIdLength = ConvertToUnicode(CP_UTF8, 0, settings->ClientProductId, -1, &clientDigProductId, 0);
 
 	stream_write_UINT32(s, version); /* Version */
 	stream_write_UINT16(s, settings->DesktopWidth); /* DesktopWidth */

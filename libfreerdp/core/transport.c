@@ -27,12 +27,11 @@
 
 #include <winpr/crt.h>
 #include <winpr/synch.h>
+#include <winpr/print.h>
 
+#include <freerdp/error.h>
 #include <freerdp/utils/tcp.h>
-#include <freerdp/utils/sleep.h>
 #include <freerdp/utils/stream.h>
-#include <freerdp/utils/hexdump.h>
-#include <freerdp/errorcodes.h>
 
 #include <time.h>
 #include <errno.h>
@@ -286,7 +285,7 @@ BOOL transport_accept_nla(rdpTransport* transport)
 	return TRUE;
 }
 
-static int transport_read_layer(rdpTransport* transport, UINT8* data, int bytes)
+int transport_read_layer(rdpTransport* transport, UINT8* data, int bytes)
 {
 	int status = -1;
 
@@ -320,7 +319,7 @@ static int transport_read_layer(rdpTransport* transport, UINT8* data, int bytes)
 		{
 			/* instead of sleeping, we should wait timeout on the socket
 			   but this only happens on initial connection */
-			freerdp_usleep(transport->usleep_interval);
+			USleep(transport->usleep_interval);
 		}
 	}
 
@@ -338,6 +337,12 @@ static int transport_read_layer(rdpTransport* transport, UINT8* data, int bytes)
 
 #endif
 }
+
+#if 0
+
+/**
+ * FIXME: this breaks NLA in certain cases only, why?
+ */
 
 int transport_read(rdpTransport* transport, STREAM* s)
 {
@@ -391,12 +396,49 @@ int transport_read(rdpTransport* transport, STREAM* s)
 	if (stream_bytes + status >= pdu_bytes)
 	{
 		printf("Local < Remote\n");
-		freerdp_hexdump(s->data, pdu_bytes);
+		winpr_HexDump(s->data, pdu_bytes);
 	}
 #endif
 
 	return transport_status;
 }
+
+#else
+
+int transport_read(rdpTransport* transport, STREAM* s)
+{
+	int status = -1;
+
+	while (TRUE)
+	{
+		if (transport->layer == TRANSPORT_LAYER_TLS)
+			status = tls_read(transport->TlsIn, stream_get_tail(s), stream_get_left(s));
+		else if (transport->layer == TRANSPORT_LAYER_TCP)
+			status = tcp_read(transport->TcpIn, stream_get_tail(s), stream_get_left(s));
+		else if (transport->layer == TRANSPORT_LAYER_TSG)
+			status = tsg_read(transport->tsg, stream_get_tail(s), stream_get_left(s));
+
+		if ((status == 0) && (transport->blocking))
+		{
+			USleep(transport->usleep_interval);
+			continue;
+		}
+
+		break;
+	}
+
+#ifdef WITH_DEBUG_TRANSPORT
+	if (status > 0)
+	{
+		printf("Local < Remote\n");
+		winpr_HexDump(s->data, status);
+	}
+#endif
+
+	return status;
+}
+
+#endif
 
 static int transport_read_nonblocking(rdpTransport* transport)
 {
@@ -425,7 +467,7 @@ int transport_write(rdpTransport* transport, STREAM* s)
 	if (length > 0)
 	{
 		printf("Local > Remote\n");
-		freerdp_hexdump(s->data, length);
+		winpr_HexDump(s->data, length);
 	}
 #endif
 
@@ -444,7 +486,7 @@ int transport_write(rdpTransport* transport, STREAM* s)
 		if (status == 0)
 		{
 			/* blocking while sending */
-			freerdp_usleep(transport->usleep_interval);
+			USleep(transport->usleep_interval);
 
 			/* when sending is blocked in nonblocking mode, the receiving buffer should be checked */
 			if (!transport->blocking)
@@ -558,7 +600,7 @@ int transport_check_fds(rdpTransport** ptransport)
 		if (length == 0)
 		{
 			printf("transport_check_fds: protocol error, not a TPKT or Fast Path header.\n");
-			freerdp_hexdump(stream_get_head(transport->recv_buffer), pos);
+			winpr_HexDump(stream_get_head(transport->recv_buffer), pos);
 			return -1;
 		}
 
