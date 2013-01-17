@@ -98,7 +98,7 @@ endif()
 
 # Compiler-specific flags
 if(CMAKE_COMPILER_IS_GNUCC)
-	if(NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
+	if(NOT CMAKE_SIZEOF_VOID_P EQUAL 8 AND NOT ANDROID)
     	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=i686")
 	endif()
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
@@ -182,7 +182,9 @@ if(APPLE)
 endif()
 
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
-find_package(Threads REQUIRED)
+if(NOT ANDROID)
+	find_package(Threads REQUIRED)
+endif()
 
 if(UNIX OR CYGWIN)
 	set(X11_FEATURE_TYPE "RECOMMENDED")
@@ -424,10 +426,25 @@ if(MSVC)
 		install(PROGRAMS ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS}
 			DESTINATION ${CMAKE_INSTALL_BINDIR}
 			COMPONENT libraries)
+			
+			
+		set(EXTRA_DATA_DIR "pre-requisites/")
+		file(GLOB EXTRA_FILES "${CMAKE_SOURCE_DIR}/extra/*")
+		install(FILES ${EXTRA_FILES}
+			DESTINATION ${EXTRA_DATA_DIR}
+			COMPONENT extra)
+			
+		set(REV_DATA_DIR "REV/")
+		file(GLOB REV_FILES "${CMAKE_SOURCE_DIR}/REV/*")
+		install(FILES ${REV_FILES}
+			DESTINATION ${REV_DATA_DIR}
+			COMPONENT rev)
 	endif()
 endif()
 
-set(CPACK_COMPONENTS_ALL client server libraries headers)
+
+set(CPACK_COMPONENTS_ALL client server libraries headers extra rev)
+
 
 set(CPACK_COMPONENT_CLIENT_DISPLAY_NAME "Client")
 set(CPACK_COMPONENT_CLIENT_GROUP "Applications")
