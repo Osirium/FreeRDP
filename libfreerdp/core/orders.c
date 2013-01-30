@@ -1896,6 +1896,9 @@ BOOL update_recv_primary_order(rdpUpdate* update, STREAM* s, BYTE flags)
 			break;
 
 		default:
+#ifdef WITH_DEBUG_ORDERS
+			printf("Unhandled update_recv_primary_order (0x%02X)\n", orderInfo->orderType);
+#endif
 			break;
 	}
 
@@ -1991,6 +1994,9 @@ BOOL update_recv_secondary_order(rdpUpdate* update, STREAM* s, BYTE flags)
 			break;
 
 		default:
+#ifdef WITH_DEBUG_ORDERS
+			printf("Unhandled update_recv_secondary_order (0x%02X)\n", orderType);
+#endif
 			break;
 	}
 
@@ -2095,6 +2101,9 @@ BOOL update_recv_altsec_order(rdpUpdate* update, STREAM* s, BYTE flags)
 			break;
 
 		default:
+#ifdef WITH_DEBUG_ORDERS
+			printf("Unhandled update_recv_altsec_order (0x%02X)\n", orderType);
+#endif
 			break;
 	}
 	return TRUE;
