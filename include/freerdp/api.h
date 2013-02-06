@@ -64,7 +64,14 @@
 #define FREERDP_TEST_API
 #endif
 
+#ifdef WITH_DEBUG_ORDERS
+#define IFCALL(_cb, ...) do { printf("IFCALL %s ", #_cb );if (_cb != NULL) { _cb( __VA_ARGS__ ); } else {printf("IFCALL %s is null\n", #_cb );} } while (0)
+#define IFCALLRET(_cb, _ret, ...) do { printf("IFCALL %s ", #_cb );if (_cb != NULL) { _ret = _cb( __VA_ARGS__ ); } else {printf("IFCALL %s is null\n", #_cb );} } while (0)
+//#define IFCALL(_cb, ...) do { if (_cb != NULL) { _cb( __VA_ARGS__ ); } else {printf("IFCALL %s is null\n", #_cb );} } while (0)
+//#define IFCALLRET(_cb, _ret, ...) do { if (_cb != NULL) { _ret = _cb( __VA_ARGS__ ); } else {printf("IFCALL %s is null\n", #_cb );} } while (0)
+#else
 #define IFCALL(_cb, ...) do { if (_cb != NULL) { _cb( __VA_ARGS__ ); } } while (0)
 #define IFCALLRET(_cb, _ret, ...) do { if (_cb != NULL) { _ret = _cb( __VA_ARGS__ ); } } while (0)
+#endif
 
 #endif /* FREERDP_API */
